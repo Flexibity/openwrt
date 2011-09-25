@@ -1,0 +1,14 @@
+Index: linux-2.6.39/arch/arm/mach-at91/board-flexibity.c
+===================================================================
+--- linux-2.6.39.orig/arch/arm/mach-at91/board-flexibity.c	2011-09-19 22:30:22.900589513 +0100
++++ linux-2.6.39/arch/arm/mach-at91/board-flexibity.c	2011-09-19 22:32:19.797169180 +0100
+@@ -45,6 +45,9 @@
+ 	/* DBGU on ttyS0. (Rx & Tx only) */
+ 	at91_register_uart(0, 0, 0);
+ 
++	/* USART0 on ttyS1. (Rx, Tx, CTS, RTS */
++	at91_register_uart(AT91SAM9260_ID_US0, 1, ATMEL_UART_CTS | ATMEL_UART_RTS);
++
+ 	/* set serial console to ttyS0 (ie, DBGU) */
+ 	at91_set_serial_console(0);
+ }

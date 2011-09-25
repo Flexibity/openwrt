@@ -7,7 +7,17 @@
 
 define Profile/flexibity-minimal
   NAME:=Flexibity Connect (minimal)
-  PACKAGES:=
+  PACKAGES:= luci-flexibity \
+	luci-mod-admin-core \
+	luci-mod-flexibity \
+	luci-theme-flexibity \
+	lighttpd-flexibity \
+	lighttpd-flexibity-mod-cgi \
+	lighttpd-flexibity-mod-proxy \
+	lighttpd-flexibity-mod-rewrite \
+	parted \
+	e2fsprogs \
+	dnsmasq
 endef
 
 define Profile/flexibity-minimal/Description
