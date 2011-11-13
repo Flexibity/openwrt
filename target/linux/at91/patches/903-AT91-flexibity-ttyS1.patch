@@ -6,8 +6,8 @@ Index: linux-2.6.39/arch/arm/mach-at91/board-flexibity.c
  	/* DBGU on ttyS0. (Rx & Tx only) */
  	at91_register_uart(0, 0, 0);
  
-+	/* USART0 on ttyS1. (Rx, Tx, CTS, RTS */
-+	at91_register_uart(AT91SAM9260_ID_US0, 1, ATMEL_UART_CTS | ATMEL_UART_RTS);
++	/* USART1 on ttyS1 (Rx, Tx, CTS, RTS) */
++	at91_register_uart(AT91SAM9260_ID_US1, 1, ATMEL_UART_CTS | ATMEL_UART_RTS);
 +
  	/* set serial console to ttyS0 (ie, DBGU) */
  	at91_set_serial_console(0);
