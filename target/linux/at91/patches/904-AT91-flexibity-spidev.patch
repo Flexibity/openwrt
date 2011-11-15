@@ -1,0 +1,18 @@
+Index: linux-2.6.39/arch/arm/mach-at91/board-flexibity.c
+===================================================================
+--- linux-2.6.39.orig/arch/arm/mach-at91/board-flexibity.c	2011-11-15 20:26:18.147708403 +0000
++++ linux-2.6.39/arch/arm/mach-at91/board-flexibity.c	2011-11-15 20:27:06.334608491 +0000
+@@ -83,6 +83,13 @@
+ 		.max_speed_hz	= 15 * 1000 * 1000,
+ 		.bus_num	= 0,
+ 	},
++	{	/* User accessible spi1, cs0 (IEEE802.15.4 radio) */
++		.modalias       = "spidev",
++		.chip_select    = 0,
++		.max_speed_hz   = 15 * 1000 * 1000,
++		.bus_num        = 1,
++		.mode           = SPI_MODE_0,
++        },
+ };
+ 
+ /* MCI (SD/MMC) */
