@@ -26,7 +26,8 @@ PKG_DRIVERS = \
 	rtl8180 rtl8187 zd1211rw mac80211-hwsim carl9170 b43 b43legacy \
 	ath9k-common ath9k ath9k-htc ath net-libipw net-ipw2100 net-ipw2200 \
 	mwl8k net-hermes net-hermes-pci net-hermes-plx net-hermes-pcmcia \
-	iwl-legacy iwl3945 iwl4965 iwlagn lib80211
+	iwl-legacy iwl3945 iwl4965 iwlagn lib80211 rtlwifi rtl8192c-common \
+	rtl8192cu
 
 PKG_CONFIG_DEPENDS:= \
 	CONFIG_PACKAGE_kmod-mac80211 \
@@ -337,6 +338,35 @@ $(call KernelPackage/rtl818x/Default)
   TITLE+= (RTL8187 USB)
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/rtl818x/rtl8187/rtl8187.ko
   AUTOLOAD:=$(call AutoLoad,27,rtl8187)
+endef
+
+define KernelPackage/rtlwifi/Default
+  $(call KernelPackage/mac80211/Default)
+  TITLE:=Ralink Drivers for RTLWIFI cards
+endef
+
+define KernelPackage/rtlwifi
+$(call KernelPackage/rtlwifi/Default)
+  DEPENDS+= @USB_SUPPORT +kmod-usb-core
+  TITLE+= (RTLWIFI)
+  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/rtlwifi/rtlwifi.ko
+  AUTOLOAD:=$(call AutoLoad,27,rtlwifi)
+endef
+
+define KernelPackage/rtl8192c-common
+$(call KernelPackage/rtlwifi/Default)
+  DEPENDS+= @USB_SUPPORT +kmod-rtlwifi +kmod-crc-ccitt
+  TITLE+= (RT8192C USB)
+  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/rtlwifi/rtl8192c/rtl8192c-common.ko
+  AUTOLOAD:=$(call AutoLoad,28,rtl8192c-common)
+endef
+
+define KernelPackage/rtl8192cu
+$(call KernelPackage/rtlwifi/Default)
+  DEPENDS+= @USB_SUPPORT +kmod-rtl8192c-common +kmod-crc-ccitt
+  TITLE+= (RT8192CU USB)
+  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/rtlwifi/rtl8192cu/rtl8192cu.ko
+  AUTOLOAD:=$(call AutoLoad,29,rtl8192cu)
 endef
 
 ZD1211FW_NAME:=zd1211-firmware
@@ -1147,8 +1177,9 @@ MAKE_OPTS:= \
 	CONFIG_RT2800USB=$(if $(CONFIG_PACKAGE_kmod-rt2800-usb),m) \
 	CONFIG_RTL8180=$(if $(CONFIG_PACKAGE_kmod-rtl8180),m) \
 	CONFIG_RTL8187=$(if $(CONFIG_PACKAGE_kmod-rtl8187),m) \
-	CONFIG_RTL8192CE= \
-	CONFIG_RTLWIFI= \
+	CONFIG_RTL8192CU=$(if $(CONFIG_PACKAGE_kmod-rtl8192cu),m) \
+	CONFIG_RTL8192C_COMMON=$(if $(CONFIG_PACKAGE_kmod-rtl8192c)-common,m) \
+	CONFIG_RTLWIFI=$(if $(CONFIG_PACKAGE_kmod-rtlwifi),m) \
 	CONFIG_MAC80211_HWSIM=$(if $(CONFIG_PACKAGE_kmod-mac80211-hwsim),m) \
 	CONFIG_PCMCIA= \
 	CONFIG_LIBIPW=$(if $(CONFIG_PACKAGE_kmod-net-libipw),m) \
@@ -1457,6 +1488,9 @@ $(eval $(call KernelPackage,rt2800-pci))
 $(eval $(call KernelPackage,rt2800-usb))
 $(eval $(call KernelPackage,rtl8180))
 $(eval $(call KernelPackage,rtl8187))
+$(eval $(call KernelPackage,rtlwifi))
+$(eval $(call KernelPackage,rtl8192c-common))
+$(eval $(call KernelPackage,rtl8192cu))
 $(eval $(call KernelPackage,zd1211rw))
 $(eval $(call KernelPackage,mac80211-hwsim))
 $(eval $(call KernelPackage,ath9k-common))
