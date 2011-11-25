@@ -369,6 +369,12 @@ $(call KernelPackage/rtlwifi/Default)
   AUTOLOAD:=$(call AutoLoad,29,rtl8192cu)
 endef
 
+define KernelPackage/rtl8192cu/install
+	$(INSTALL_DIR) $(1)/lib/firmware
+	$(INSTALL_DIR) $(1)/lib/firmware/rtlwifi
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/$(PKG_LINUX_FIRMWARE_SUBDIR)/rtlwifi/rtl8192cufw.bin $(1)/lib/firmware/rtlwifi
+endef
+
 ZD1211FW_NAME:=zd1211-firmware
 ZD1211FW_VERSION:=1.4
 define Download/zd1211rw
