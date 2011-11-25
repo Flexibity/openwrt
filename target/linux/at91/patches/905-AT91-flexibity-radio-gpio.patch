@@ -1,0 +1,32 @@
+Index: linux-2.6.39/arch/arm/mach-at91/board-flexibity.c
+===================================================================
+--- linux-2.6.39.orig/arch/arm/mach-at91/board-flexibity.c	2011-11-25 20:18:56.387115323 +0000
++++ linux-2.6.39/arch/arm/mach-at91/board-flexibity.c	2011-11-25 20:25:45.121760125 +0000
+@@ -170,6 +170,27 @@
+ 	at91_add_device_mmc(0, &flexibity_mmc_data);
+ 	/* LEDs */
+ 	at91_gpio_leds(flexibity_leds, ARRAY_SIZE(flexibity_leds));
++
++	/* PB10 is radio RESETB */
++	if ((gpio_request(AT91_PIN_PB10, "radio:nreset") == 0) &&
++		(gpio_direction_output(AT91_PIN_PB10, 0) == 0))
++			gpio_export(AT91_PIN_PB10, 0);
++	else
++		printk(KERN_ERR "Could not obtain gpio for radio:nreset\n");
++
++	/* PA14 is radio VREFL */
++	if ((gpio_request(AT91_PIN_PA14, "radio:vrefl") == 0) &&
++		(gpio_direction_output(AT91_PIN_PA14, 0) == 0))
++			gpio_export(AT91_PIN_PA14, 0);
++	else
++		printk(KERN_ERR "Could not obtain gpio for radio:vrefl\n");
++
++	/* PA15 is radio VREFH */
++	if ((gpio_request(AT91_PIN_PA15, "radio:vrefh") == 0) &&
++		(gpio_direction_output(AT91_PIN_PA15, 0) == 0))
++			gpio_export(AT91_PIN_PA15, 0);
++	else
++		printk(KERN_ERR "Could not obtain gpio for radio:vrefh\n");
+ }
+ 
+ MACHINE_START(FLEXIBITY, "Flexibity Connect")
