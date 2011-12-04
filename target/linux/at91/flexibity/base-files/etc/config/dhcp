@@ -18,8 +18,8 @@ config dnsmasq
 
 config dhcp cfg
 	option interface	cfg
-	option start 	1
-	option limit	1
+	option start 	2
+	option limit	2
 	option leasetime	12h
 
 config dhcp lan
