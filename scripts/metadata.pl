@@ -161,6 +161,7 @@ sub target_config_features(@) {
 		/usb/ and $ret .= "\tselect USB_SUPPORT\n";
 		/usbgadget/ and $ret .= "\tselect USB_GADGET_SUPPORT\n";
 		/pcmcia/ and $ret .= "\tselect PCMCIA_SUPPORT\n";
+		/rtc/ and $ret .= "\tselect RTC_SUPPORT\n";
 		/squashfs/ and $ret .= "\tselect USES_SQUASHFS\n";
 		/jffs2/ and $ret .= "\tselect USES_JFFS2\n";
 		/ext4/ and $ret .= "\tselect USES_EXT4\n";
@@ -475,6 +476,7 @@ sub mconf_depends {
 			$flags =~ /@/ or $depend = "PACKAGE_$depend";
 			if ($condition) {
 				if ($m =~ /select/) {
+					next if $depend eq $condition;
 					$depend = "$depend if $condition";
 				} else {
 					$depend = "!($condition) || $depend";

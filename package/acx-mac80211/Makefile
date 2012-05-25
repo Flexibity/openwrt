@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2007-2011 OpenWrt.org
+# Copyright (C) 2007-2012 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -9,8 +9,8 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=acx-mac80211
-PKG_REV:=0da6e533679c177c1f5efffd22e345304d273e49
-PKG_VERSION:=20110821
+PKG_REV:=15bbffeadc1928a21a8a5f6519a5aea13b50678a
+PKG_VERSION:=20120422
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
@@ -103,11 +103,7 @@ PKG_EXTRA_CFLAGS:= \
 	$(patsubst CONFIG_%, -DCONFIG_%=1, $(patsubst %=m,%,$(filter %=m,$(PKG_EXTRA_KCONFIG)))) \
 	$(patsubst CONFIG_%, -DCONFIG_%=1, $(patsubst %=y,%,$(filter %=y,$(PKG_EXTRA_KCONFIG)))) \
 
-ifneq ($(CONFIG_LINUX_2_6_30)$(CONFIG_LINUX_2_6_31)$(CONFIG_LINUX_2_6_32),)
-  LINUX_AUTOCONF_FILE:= linux/autoconf.h
-else
-  LINUX_AUTOCONF_FILE:= generated/autoconf.h
-endif
+LINUX_AUTOCONF_FILE:= generated/autoconf.h
 
 define Build/Compile
 	$(MAKE) -C "$(LINUX_DIR)" \

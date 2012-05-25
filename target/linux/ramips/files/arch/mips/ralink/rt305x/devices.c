@@ -16,6 +16,8 @@
 #include <linux/mtd/physmap.h>
 #include <linux/spi/spi.h>
 #include <linux/rt2x00_platform.h>
+#include <linux/delay.h>
+#include <linux/dma-mapping.h>
 
 #include <asm/addrspace.h>
 
@@ -24,6 +26,9 @@
 #include "devices.h"
 
 #include <ramips_eth_platform.h>
+#include <rt305x_esw_platform.h>
+#include <rt3883_ehci_platform.h>
+#include <rt3883_ohci_platform.h>
 
 static struct resource rt305x_flash0_resources[] = {
 	{
@@ -34,10 +39,14 @@ static struct resource rt305x_flash0_resources[] = {
 	},
 };
 
+struct physmap_flash_data rt305x_flash0_data;
 static struct platform_device rt305x_flash0_device = {
 	.name		= "physmap-flash",
 	.resource	= rt305x_flash0_resources,
 	.num_resources	= ARRAY_SIZE(rt305x_flash0_resources),
+	.dev = {
+		.platform_data = &rt305x_flash0_data,
+	},
 };
 
 static struct resource rt305x_flash1_resources[] = {
@@ -49,17 +58,21 @@ static struct resource rt305x_flash1_resources[] = {
 	},
 };
 
+struct physmap_flash_data rt305x_flash1_data;
 static struct platform_device rt305x_flash1_device = {
 	.name		= "physmap-flash",
 	.resource	= rt305x_flash1_resources,
 	.num_resources	= ARRAY_SIZE(rt305x_flash1_resources),
+	.dev = {
+		.platform_data = &rt305x_flash1_data,
+	},
 };
 
 static int rt305x_flash_instance __initdata;
-void __init rt305x_register_flash(unsigned int id,
-				  struct physmap_flash_data *pdata)
+void __init rt305x_register_flash(unsigned int id)
 {
 	struct platform_device *pdev;
+	struct physmap_flash_data *pdata;
 	u32 t;
 	int reg;
 
@@ -79,6 +92,7 @@ void __init rt305x_register_flash(unsigned int id,
 	t = rt305x_memc_rr(reg);
 	t = (t >> FLASH_CFG_WIDTH_SHIFT) & FLASH_CFG_WIDTH_MASK;
 
+	pdata = pdev->dev.platform_data;
 	switch (t) {
 	case FLASH_CFG_WIDTH_8BIT:
 		pdata->width = 1;
@@ -94,7 +108,6 @@ void __init rt305x_register_flash(unsigned int id,
 		return;
 	}
 
-	pdev->dev.platform_data = pdata;
 	pdev->id = rt305x_flash_instance;
 
 	platform_device_register(pdev);
@@ -142,7 +155,12 @@ static struct resource rt305x_esw_resources[] = {
 	},
 };
 
-struct rt305x_esw_platform_data rt305x_esw_data;
+struct rt305x_esw_platform_data rt305x_esw_data = {
+	.vlan_config		= RT305X_ESW_VLAN_CONFIG_NONE,
+	.reg_initval_fct2	= 0x00d6500c,
+	.reg_initval_fpa2	= 0x3f502b28,
+};
+
 static struct platform_device rt305x_esw_device = {
 	.name		= "rt305x-esw",
 	.resource	= rt305x_esw_resources,
@@ -215,8 +233,8 @@ void __init rt305x_register_wdt(void)
 
 	/* enable WDT reset output on pin SRAM_CS_N */
 	t = rt305x_sysc_rr(SYSC_REG_SYSTEM_CONFIG);
-	t |= SYSTEM_CONFIG_SRAM_CS0_MODE_WDT <<
-	     SYSTEM_CONFIG_SRAM_CS0_MODE_SHIFT;
+	t |= RT305X_SYSCFG_SRAM_CS0_MODE_WDT <<
+	     RT305X_SYSCFG_SRAM_CS0_MODE_SHIFT;
 	rt305x_sysc_wr(t, SYSC_REG_SYSTEM_CONFIG);
 
 	platform_device_register(&rt305x_wdt_device);
@@ -243,7 +261,7 @@ void __init rt305x_register_spi(struct spi_board_info *info, int n)
 	platform_device_register(&rt305x_spi_device);
 }
 
-static struct resource rt305x_usb_resources[] = {
+static struct resource rt305x_dwc_otg_resources[] = {
 	{
 		.start	= RT305X_OTG_BASE,
 		.end	= RT305X_OTG_BASE + 0x3FFFF,
@@ -255,16 +273,134 @@ static struct resource rt305x_usb_resources[] = {
 	},
 };
 
-static struct platform_device rt305x_usb_device = {
+static struct platform_device rt305x_dwc_otg_device = {
 	.name			= "dwc_otg",
-	.resource		= rt305x_usb_resources,
-	.num_resources	= ARRAY_SIZE(rt305x_usb_resources),
+	.resource		= rt305x_dwc_otg_resources,
+	.num_resources	= ARRAY_SIZE(rt305x_dwc_otg_resources),
 	.dev = {
 		.platform_data = NULL,
 	}
 };
 
+static atomic_t rt3352_usb_use_count = ATOMIC_INIT(0);
+
+static void rt3352_usb_host_start(void)
+{
+	u32 t;
+
+	if (atomic_inc_return(&rt3352_usb_use_count) != 1)
+		return;
+
+	t = rt305x_sysc_rr(RT3352_SYSC_REG_USB_PS);
+
+	/* enable clock for port0's and port1's phys */
+	t = rt305x_sysc_rr(RT3352_SYSC_REG_CLKCFG1);
+	t = t | RT3352_CLKCFG1_UPHY0_CLK_EN | RT3352_CLKCFG1_UPHY1_CLK_EN;
+	rt305x_sysc_wr(t, RT3352_SYSC_REG_CLKCFG1);
+	mdelay(500);
+
+	/* pull USBHOST and USBDEV out from reset */
+	t = rt305x_sysc_rr(RT3352_SYSC_REG_RSTCTRL);
+	t &= ~(RT3352_RSTCTRL_UHST | RT3352_RSTCTRL_UDEV);
+	rt305x_sysc_wr(t, RT3352_SYSC_REG_RSTCTRL);
+	mdelay(500);
+
+	/* enable host mode */
+	t = rt305x_sysc_rr(RT3352_SYSC_REG_SYSCFG1);
+	t |= RT3352_SYSCFG1_USB0_HOST_MODE;
+	rt305x_sysc_wr(t, RT3352_SYSC_REG_SYSCFG1);
+
+	t = rt305x_sysc_rr(RT3352_SYSC_REG_USB_PS);
+}
+
+static void rt3352_usb_host_stop(void)
+{
+	u32 t;
+
+	if (atomic_dec_return(&rt3352_usb_use_count) != 0)
+		return;
+
+	/* put USBHOST and USBDEV into reset */
+	t = rt305x_sysc_rr(RT3352_SYSC_REG_RSTCTRL);
+	t |= RT3352_RSTCTRL_UHST | RT3352_RSTCTRL_UDEV;
+	rt305x_sysc_wr(t, RT3352_SYSC_REG_RSTCTRL);
+	udelay(10000);
+
+	/* disable clock for port0's and port1's phys*/
+	t = rt305x_sysc_rr(RT3352_SYSC_REG_CLKCFG1);
+	t &= ~(RT3352_CLKCFG1_UPHY0_CLK_EN | RT3352_CLKCFG1_UPHY1_CLK_EN);
+	rt305x_sysc_wr(t, RT3352_SYSC_REG_CLKCFG1);
+	udelay(10000);
+}
+
+static struct rt3883_ehci_platform_data rt3352_ehci_data = {
+	.start_hw	= rt3352_usb_host_start,
+	.stop_hw	= rt3352_usb_host_stop,
+};
+
+static struct resource rt3352_ehci_resources[] = {
+	{
+		.start	= RT3352_EHCI_BASE,
+		.end	= RT3352_EHCI_BASE + RT3352_EHCI_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	}, {
+		.start	= RT305X_INTC_IRQ_OTG,
+		.end	= RT305X_INTC_IRQ_OTG,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static u64 rt3352_ehci_dmamask = DMA_BIT_MASK(32);
+static struct platform_device rt3352_ehci_device = {
+	.name		= "rt3352-ehci",
+	.id		= -1,
+	.resource	= rt3352_ehci_resources,
+	.num_resources	= ARRAY_SIZE(rt3352_ehci_resources),
+	.dev            = {
+		.dma_mask		= &rt3352_ehci_dmamask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+		.platform_data		= &rt3352_ehci_data,
+	},
+};
+
+static struct resource rt3352_ohci_resources[] = {
+	{
+		.start	= RT3352_OHCI_BASE,
+		.end	= RT3352_OHCI_BASE + RT3352_OHCI_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	}, {
+		.start	= RT305X_INTC_IRQ_OTG,
+		.end	= RT305X_INTC_IRQ_OTG,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct rt3883_ohci_platform_data rt3352_ohci_data = {
+	.start_hw	= rt3352_usb_host_start,
+	.stop_hw	= rt3352_usb_host_stop,
+};
+
+static u64 rt3352_ohci_dmamask = DMA_BIT_MASK(32);
+static struct platform_device rt3352_ohci_device = {
+	.name		= "rt3352-ohci",
+	.id		= -1,
+	.resource	= rt3352_ohci_resources,
+	.num_resources	= ARRAY_SIZE(rt3352_ohci_resources),
+	.dev            = {
+		.dma_mask		= &rt3352_ohci_dmamask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+		.platform_data		= &rt3352_ohci_data,
+	},
+};
+
 void __init rt305x_register_usb(void)
 {
-	platform_device_register(&rt305x_usb_device);
+	if (soc_is_rt305x() || soc_is_rt3350()) {
+		platform_device_register(&rt305x_dwc_otg_device);
+	} else if (soc_is_rt3352()) {
+		platform_device_register(&rt3352_ehci_device);
+		platform_device_register(&rt3352_ohci_device);
+	} else {
+		BUG();
+	}
 }

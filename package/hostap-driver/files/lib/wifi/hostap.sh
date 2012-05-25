@@ -39,6 +39,9 @@ scan_prism2() {
 	config_get vifs "$device" vifs
 	local _c=0
 	for vif in $vifs; do
+		config_get_bool disabled "$vif" disabled 0
+		[ $disabled = 0 ] || continue
+
 		config_get mode "$vif" mode
 		case "$mode" in
 			adhoc|sta|ap|monitor)
@@ -208,7 +211,7 @@ enable_prism2() {
 			;;
 			wds|sta)
 				if eval "type wpa_supplicant_setup_vif" 2>/dev/null >/dev/null; then
-					wpa_supplicant_setup_vif "$vif" hostap || {
+					wpa_supplicant_setup_vif "$vif" wext || {
 						echo "enable_prism2($device): Failed to set up wpa_supplicant for interface $ifname" >&2
 						ifconfig "$ifname" down
 						continue

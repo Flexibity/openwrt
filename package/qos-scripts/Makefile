@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=qos-scripts
 PKG_VERSION:=1.2.1
-PKG_RELEASE:=5
+PKG_RELEASE:=6
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
@@ -18,7 +18,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/qos-scripts
   SECTION:=utils
   CATEGORY:=Base system
-  DEPENDS:=+tc +kmod-sched +kmod-ifb +iptables +iptables-mod-filter +iptables-mod-ipopt +iptables-mod-conntrack-extra
+  DEPENDS:=+tc +kmod-sched-core +kmod-sched-connmark +kmod-ifb +iptables +iptables-mod-filter +iptables-mod-ipopt +iptables-mod-conntrack-extra
   TITLE:=QoS scripts
   PKGARCH:=all
 endef
